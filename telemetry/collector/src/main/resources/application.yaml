@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: collector
+
+  kafka:
+    properties:
+      schema.registry.url: http://localhost:8081
+
+collector:
+  topics:
+    sensors: telemetry.sensors.v1
+    hubs: telemetry.hubs.v1
