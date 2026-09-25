@@ -14,7 +14,7 @@ import java.util.Properties;
 @Configuration
 public class KafkaConfig {
     @Bean(destroyMethod = "")
-    public Producer<String, SpecificRecordBase> kafkaProducer() {
+    public Producer<String, SpecificRecordBase> producer() {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
