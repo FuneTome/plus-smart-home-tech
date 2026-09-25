@@ -1,0 +1,62 @@
+package ru.yandex.practicum.service.handler.hub;
+
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
+import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
+import ru.yandex.practicum.grpc.telemetry.event.ScenarioAddedEventProto;
+import ru.yandex.practicum.grpc.telemetry.event.ScenarioConditionProto;
+import ru.yandex.practicum.kafka.KafkaProducer;
+import ru.yandex.practicum.kafka.telemetry.event.DeviceActionAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ScenarioConditionAvro;
+import ru.yandex.practicum.serialize.EnumMapper;
+import ru.yandex.practicum.service.handler.BaseHubEventHandler;
+
+@Component
+public class ScenarioAddedHubEventHandler extends BaseHubEventHandler<ScenarioAddedEventAvro> {
+    public ScenarioAddedHubEventHandler(KafkaProducer producer) {
+        super(producer);
+    }
+
+    @Override
+    public HubEventProto.PayloadCase getMessageType() {
+        return HubEventProto.PayloadCase.SCENARIO_ADDED;
+    }
+
+    @Override
+    public ScenarioAddedEventAvro mapToAvro(HubEventProto event) {
+        ScenarioAddedEventProto scenarioAddedEvent = event.getScenarioAdded();
+        return ScenarioAddedEventAvro.newBuilder()
+                .setName(scenarioAddedEvent.getName())
+                .setConditions(
+                        scenarioAddedEvent.getConditionList().stream().map(this::mapToCondition).toList())
+                .setActions(
+                        scenarioAddedEvent.getActionList().stream().map(this::mapToDeviceAction).toList())
+                .build();
+    }
+
+    private ScenarioConditionAvro mapToCondition(ScenarioConditionProto scenarioCondition) {
+        Object value = null;
+
+        if (scenarioCondition.hasBoolValue()) {
+            value = scenarioCondition.getBoolValue();
+        } else if (scenarioCondition.hasIntValue()) {
+            value = scenarioCondition.getIntValue();
+        }
+
+        return ScenarioConditionAvro.newBuilder()
+                .setSensorId(scenarioCondition.getSensorId())
+                .setType(EnumMapper.toConditionTypeAvro(scenarioCondition.getType()))
+                .setOperation(EnumMapper.toConditionOperationTypeAvro(scenarioCondition.getOperation()))
+                .setValue(value)
+                .build();
+    }
+
+    private DeviceActionAvro mapToDeviceAction(DeviceActionProto deviceAction) {
+        return DeviceActionAvro.newBuilder()
+                .setSensorId(deviceAction.getSensorId())
+                .setType(EnumMapper.toActionTypeAvro(deviceAction.getType()))
+                .setValue(deviceAction.getValue())
+                .build();
+    }
+}
