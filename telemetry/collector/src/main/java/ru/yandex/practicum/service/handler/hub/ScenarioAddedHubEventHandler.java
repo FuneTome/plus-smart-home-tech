@@ -29,9 +29,9 @@ public class ScenarioAddedHubEventHandler extends BaseHubEventHandler<ScenarioAd
         return ScenarioAddedEventAvro.newBuilder()
                 .setName(scenarioAddedEvent.getName())
                 .setConditions(
-                        scenarioAddedEvent.getConditionList().stream().map(this::mapToCondition).toList())
+                        scenarioAddedEvent.getConditionsList().stream().map(this::mapToCondition).toList())
                 .setActions(
-                        scenarioAddedEvent.getActionList().stream().map(this::mapToDeviceAction).toList())
+                        scenarioAddedEvent.getActionsList().stream().map(this::mapToDeviceAction).toList())
                 .build();
     }
 
