@@ -21,7 +21,7 @@ public class KafkaConsumerConfiguration {
     public static final String HUBS_EVENTS_TOPIC = "telemetry.hubs.v1";
 
 
-    @Bean
+    @Bean(destroyMethod = "")
     public Consumer<String, SensorsSnapshotAvro> getSnapshotConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.getBootstrapServers());
@@ -32,7 +32,7 @@ public class KafkaConsumerConfiguration {
         return new KafkaConsumer<>(props);
     }
 
-    @Bean
+    @Bean(destroyMethod = "")
     public Consumer<String, HubEventAvro> getHubConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, configuration.getBootstrapServers());
@@ -40,7 +40,6 @@ public class KafkaConsumerConfiguration {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, configuration.getConsumer().getHub().getKeyDeserializer());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, configuration.getConsumer().getHub().getValueDeserializer());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, configuration.getConsumer().getHub().isEnableAutoCommit());
-        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, configuration.getConsumer().getHub().getAutoCommitIntervalMs());
         return new KafkaConsumer<>(props);
     }
 }

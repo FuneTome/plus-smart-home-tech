@@ -50,8 +50,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
 
         Scenario scenario = scenarioRepository.findByHubIdAndName(hubId, scenarioName)
                 .map(existing -> {
-                    conditionRepository.deleteById(existing.getId());
-                    actionRepository.deleteById(existing.getId());
+                    cleanupScenario(existing);
                     return existing;
                 })
                 .orElseGet(() -> {
@@ -66,6 +65,25 @@ public class ScenarioAddedHandler implements HubEventHandler {
         saveActions(scenario, payload.getActions(), hubId);
 
         log.info("Сценарий {} успешно сохранен для хаба {}", scenarioName, hubId);
+    }
+
+    private void cleanupScenario(Scenario existing) {
+        List<ScenarioCondition> oldConditions = scenarioConditionRepository.findByScenarioId(existing.getId());
+        List<ScenarioAction> oldActions = scenarioActionRepository.findByScenarioId(existing.getId());
+
+        scenarioConditionRepository.deleteAll(oldConditions);
+        scenarioActionRepository.deleteAll(oldActions);
+
+        if (!oldConditions.isEmpty()) {
+            conditionRepository.deleteAll(oldConditions.stream()
+                    .map(ScenarioCondition::getCondition)
+                    .collect(Collectors.toList()));
+        }
+        if (!oldActions.isEmpty()) {
+            actionRepository.deleteAll(oldActions.stream()
+                    .map(ScenarioAction::getAction)
+                    .collect(Collectors.toList()));
+        }
     }
 
     private void saveConditions(Scenario scenario, List<ScenarioConditionAvro> conditionAvros, String hubId) {

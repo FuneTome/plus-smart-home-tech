@@ -40,5 +40,4 @@ kafka:
       group-id: analyzer-hub-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: ru.yandex.practicum.kafka.deserializer.HubEventDeserializer
-      enable-auto-commit: true
-      auto-commit-interval-ms: 5000
+      enable-auto-commit: false

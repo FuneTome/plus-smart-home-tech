@@ -27,6 +27,11 @@ public class DeviceAddedHandler implements HubEventHandler {
         String hubId = event.getHubId();
         DeviceAddedEventAvro payload = (DeviceAddedEventAvro) event.getPayload();
 
+        if (sensorRepository.findByIdAndHubId(payload.getId(), hubId).isPresent()) {
+            log.info("Устройство {} уже добавлено в хаб {}", payload.getId(), hubId);
+            return;
+        }
+
         Sensor sensor = Sensor.builder()
                 .id(payload.getId())
                 .hubId(hubId)
