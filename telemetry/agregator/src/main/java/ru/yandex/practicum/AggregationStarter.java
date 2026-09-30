@@ -59,7 +59,9 @@ public class AggregationStarter {
             log.error("Ошибка во время обработки событий от датчиков", e);
         } finally {
             try {
-                consumer.commitSync(currentOffsets);
+                if (!currentOffsets.isEmpty()) {
+                    consumer.commitSync(currentOffsets);
+                }
                 producer.flush();
             } finally {
                 log.info("Закрываем консьюмер");
@@ -71,12 +73,14 @@ public class AggregationStarter {
         }
     }
 
-    private void handleRecord(ConsumerRecord<String, SensorEventAvro> record) {
+    private void handleRecord(ConsumerRecord<String, SensorEventAvro> record) throws Exception {
         Optional<SensorsSnapshotAvro> snapshotOpt = aggregatorService.updateState(record.value());
-        snapshotOpt.ifPresent(this::sendSnapshot);
+        if (snapshotOpt.isPresent()) {
+            sendSnapshot(snapshotOpt.get());
+        }
     }
 
-    private void sendSnapshot(SensorsSnapshotAvro snapshot) {
+    private void sendSnapshot(SensorsSnapshotAvro snapshot) throws Exception {
         log.info("Отправка снепшота для хаба {} в топик {}", snapshot.getHubId(), configuration.getTopics().getSnapshots());
         log.debug("Детали снепшота: timestamp={}, количество датчиков={}",
                 snapshot.getTimestamp(), snapshot.getSensorsState().size());
@@ -87,7 +91,7 @@ public class AggregationStarter {
                 snapshot.getTimestamp().toEpochMilli(),
                 snapshot.getHubId(),
                 snapshot);
-        producer.send(record);
+        producer.send(record).get();
     }
 
     private void manageOffsets(ConsumerRecord<String, SensorEventAvro> record, int count, Consumer<String, SensorEventAvro> consumer) {

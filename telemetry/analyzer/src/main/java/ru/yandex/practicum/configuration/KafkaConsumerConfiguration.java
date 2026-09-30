@@ -17,10 +17,6 @@ public class KafkaConsumerConfiguration {
 
     private final KafkaConfiguration configuration;
 
-    public static final String SNAPSHOTS_TOPIC = "telemetry.snapshots.v1";
-    public static final String HUBS_EVENTS_TOPIC = "telemetry.hubs.v1";
-
-
     @Bean(destroyMethod = "")
     public Consumer<String, SensorsSnapshotAvro> getSnapshotConsumer() {
         Properties props = new Properties();

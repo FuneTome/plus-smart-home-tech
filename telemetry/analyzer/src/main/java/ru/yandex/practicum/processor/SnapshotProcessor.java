@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.configuration.KafkaConfiguration;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.service.AnalyzerService;
@@ -19,8 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static ru.yandex.practicum.configuration.KafkaConsumerConfiguration.SNAPSHOTS_TOPIC;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -29,9 +28,9 @@ public class SnapshotProcessor {
     private final Consumer<String, SensorsSnapshotAvro> consumer;
     private final AnalyzerService analyzerService;
     private final HubEventServiceImpl hubEventService;
+    private final KafkaConfiguration configuration;
 
     private static final Duration CONSUME_ATTEMPT_TIMEOUT = Duration.ofMillis(1000);
-    private static final List<String> TOPICS = List.of(SNAPSHOTS_TOPIC);
 
     private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
@@ -42,7 +41,7 @@ public class SnapshotProcessor {
         }));
 
         try {
-            consumer.subscribe(TOPICS);
+            consumer.subscribe(List.of(configuration.getTopics().getSnapshots()));
 
             while (true) {
                 log.debug("Ожидание новых сообщений...");
@@ -68,7 +67,9 @@ public class SnapshotProcessor {
 
         } finally {
             try {
-                consumer.commitSync(currentOffsets);
+                if (!currentOffsets.isEmpty()) {
+                    consumer.commitSync(currentOffsets);
+                }
             } finally {
                 log.info("Закрываем консьюмер");
                 consumer.close();

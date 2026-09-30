@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.configuration.KafkaConfiguration;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.service.HubEventService;
 
@@ -17,8 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static ru.yandex.practicum.configuration.KafkaConsumerConfiguration.HUBS_EVENTS_TOPIC;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -26,9 +25,9 @@ public class HubEventProcessor implements Runnable {
 
     private final Consumer<String, HubEventAvro> consumer;
     private final HubEventService hubEventService;
+    private final KafkaConfiguration configuration;
 
     private static final Duration CONSUME_ATTEMPT_TIMEOUT = Duration.ofMillis(1000);
-    private static final List<String> TOPICS = List.of(HUBS_EVENTS_TOPIC);
 
     private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
@@ -40,7 +39,7 @@ public class HubEventProcessor implements Runnable {
         }));
 
         try {
-            consumer.subscribe(TOPICS);
+            consumer.subscribe(List.of(configuration.getTopics().getHubEvents()));
 
             while (true) {
                 ConsumerRecords<String, HubEventAvro> records = consumer.poll(CONSUME_ATTEMPT_TIMEOUT);
@@ -65,7 +64,9 @@ public class HubEventProcessor implements Runnable {
 
         } finally {
             try {
-                consumer.commitSync(currentOffsets);
+                if (!currentOffsets.isEmpty()) {
+                    consumer.commitSync(currentOffsets);
+                }
             } finally {
                 log.info("Закрываем консьюмер");
                 consumer.close();

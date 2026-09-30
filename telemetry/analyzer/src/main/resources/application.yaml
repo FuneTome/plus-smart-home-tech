@@ -30,6 +30,9 @@ logging:
 
 kafka:
   bootstrap-servers: localhost:9092
+  topics:
+    snapshots: telemetry.snapshots.v1
+    hub-events: telemetry.hubs.v1
   consumer:
     snapshot:
       group-id: analyzer-snapshot-group

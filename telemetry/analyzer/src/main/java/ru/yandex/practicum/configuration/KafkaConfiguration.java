@@ -12,6 +12,13 @@ public class KafkaConfiguration {
     private String bootstrapServers;
 
     private Consumer consumer = new Consumer();
+    private Topics topics = new Topics();
+
+    @Data
+    public static class Topics {
+        private String snapshots;
+        private String hubEvents;
+    }
 
     @Data
     public static class Consumer {
