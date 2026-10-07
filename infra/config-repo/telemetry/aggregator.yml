@@ -1,0 +1,5 @@
+kafka:
+  group-id: aggregator-group
+  topics:
+    sensor-events: telemetry.sensors.v1
+    snapshots: telemetry.snapshots.v1
