@@ -1,4 +1,3 @@
-/*
 package ru.yandex.practicum.order;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -135,4 +134,3 @@ class OrderServiceAcceptanceTest {
         return new BigDecimal(value.toString());
     }
 }
-*/
