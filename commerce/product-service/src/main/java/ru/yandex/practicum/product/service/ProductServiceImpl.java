@@ -8,7 +8,7 @@ import ru.yandex.practicum.product.dto.UpdateProductRequest;
 import ru.yandex.practicum.product.dto.mapper.ProductMapper;
 import ru.yandex.practicum.product.entity.Category;
 import ru.yandex.practicum.product.entity.Product;
-import ru.yandex.practicum.product.exception.BadRequestException;
+import ru.yandex.practicum.product.exception.ConflictException;
 import ru.yandex.practicum.product.exception.NotFoundException;
 import ru.yandex.practicum.product.repository.CategoryRepository;
 import ru.yandex.practicum.product.repository.ProductRepository;
@@ -64,7 +64,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if(productRepository.existsByName(product.getName())) {
-            throw new BadRequestException("Товар с name = " + product.getName() + " уже существует");
+            throw new ConflictException("Товар с name = " + product.getName() + " уже существует");
         }
         return mapper.toProductDto(productRepository.save(product));
     }
@@ -76,7 +76,7 @@ public class ProductServiceImpl implements ProductService {
         if (prod.name() != null) {
             if (!prod.name().equals(product.getName())
                     && productRepository.existsByName(prod.name())) {
-                throw new BadRequestException("Товар с name = " + prod.name() + " уже существует");
+                throw new ConflictException("Товар с name = " + prod.name() + " уже существует");
             }
             product.setName(prod.name());
         }

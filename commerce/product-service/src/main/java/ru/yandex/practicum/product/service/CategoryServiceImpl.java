@@ -2,12 +2,11 @@ package ru.yandex.practicum.product.service;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import ru.yandex.practicum.product.dto.CategoryDto;
 import ru.yandex.practicum.product.dto.CreateCategoryRequest;
 import ru.yandex.practicum.product.dto.mapper.CategoryMapper;
 import ru.yandex.practicum.product.entity.Category;
-import ru.yandex.practicum.product.exception.BadRequestException;
+import ru.yandex.practicum.product.exception.ConflictException;
 import ru.yandex.practicum.product.exception.NotFoundException;
 import ru.yandex.practicum.product.repository.CategoryRepository;
 
@@ -36,7 +35,7 @@ public class CategoryServiceImpl implements CategoriesService {
     public CategoryDto createCategory(CreateCategoryRequest cat) {
         Category category = mapper.toCategory(cat);
         if(categoryRepository.existsByName(category.getName())) {
-            throw new BadRequestException("Категория с name = " + category.getName() + " уже существует");
+            throw new ConflictException("Категория с name = " + category.getName() + " уже существует");
         }
         return mapper.toCategoryDto(categoryRepository.save(category));
     }
