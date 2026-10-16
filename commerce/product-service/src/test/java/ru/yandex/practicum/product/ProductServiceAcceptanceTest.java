@@ -1,4 +1,3 @@
-/*
 package ru.yandex.practicum.product;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -180,4 +179,4 @@ class ProductServiceAcceptanceTest {
     private static BigDecimal asDecimal(Object value) {
         return new BigDecimal(value.toString());
     }
-}*/
+}

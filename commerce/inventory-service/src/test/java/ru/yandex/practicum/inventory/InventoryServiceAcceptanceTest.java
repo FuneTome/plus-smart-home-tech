@@ -1,4 +1,3 @@
-/*
 package ru.yandex.practicum.inventory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -141,4 +140,3 @@ class InventoryServiceAcceptanceTest {
         return value == null ? null : ((Number) value).intValue();
     }
 }
-*/
