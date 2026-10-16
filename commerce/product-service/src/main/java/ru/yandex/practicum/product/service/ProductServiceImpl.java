@@ -55,6 +55,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDto createProduct(CreateProductRequest prod) {
         Product product = mapper.toProduct(prod);
+
+        if (prod.categoryId() != null) {
+            Category category = categoryRepository.findById(prod.categoryId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Категория с id = " + prod.categoryId() + " не найдена"));
+            product.setCategory(category);
+        }
+
         if(productRepository.existsByName(product.getName())) {
             throw new BadRequestException("Товар с name = " + product.getName() + " уже существует");
         }
@@ -71,6 +79,13 @@ public class ProductServiceImpl implements ProductService {
                 throw new BadRequestException("Товар с name = " + prod.name() + " уже существует");
             }
             product.setName(prod.name());
+        }
+
+        if (prod.categoryId() != null) {
+            Category category = categoryRepository.findById(prod.categoryId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Категория с id = " + prod.categoryId() + " не найдена"));
+            product.setCategory(category);
         }
 
         if (prod.description() != null) {

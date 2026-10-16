@@ -8,7 +8,6 @@ import ru.yandex.practicum.inventory.dto.ReserveResponse;
 import ru.yandex.practicum.inventory.dto.UpdateInventoryRequest;
 import ru.yandex.practicum.inventory.dto.mapper.InventoryMapper;
 import ru.yandex.practicum.inventory.entity.Inventory;
-import ru.yandex.practicum.inventory.exception.BadRequestException;
 import ru.yandex.practicum.inventory.exception.InsufficientStockException;
 import ru.yandex.practicum.inventory.exception.NotFoundException;
 import ru.yandex.practicum.inventory.repository.InventoryRepository;
@@ -46,6 +45,11 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public InventoryDto createRemain(UpdateInventoryRequest request) {
         Inventory inventory = mapper.toInventory(request);
+
+        if (inventoryRepository.existsByProductId(request.productId())) {
+            throw new InsufficientStockException("Остатки для productId уже существуют");
+        }
+
         inventory.setReservedQuantity(0);
         inventory.setAvailableQuantity(request.quantity());
         return mapper.toInventoryDto(inventoryRepository.save(inventory));
@@ -55,12 +59,14 @@ public class InventoryServiceImpl implements InventoryService {
     public ReserveResponse reserveProduct(ReserveRequest request) {
         Inventory inventory = inventoryRepository.findByProductId(request.productId())
                 .orElseThrow(() -> new NotFoundException("Остатки с id = " + request.productId() + " не найдена"));
-        int reserve = request.quantity();
-        if(inventory.getQuantity() < reserve) {
+
+        int newReserve = request.quantity() + inventory.getReservedQuantity();
+
+        if(inventory.getQuantity() < newReserve) {
             throw new InsufficientStockException("Количество для резервирования больше чем количество товара на складе");
         }
-        inventory.setReservedQuantity(reserve);
-        inventory.setAvailableQuantity(inventory.getQuantity() - reserve);
+        inventory.setReservedQuantity(newReserve);
+        inventory.setAvailableQuantity(inventory.getQuantity() - newReserve);
         inventoryRepository.save(inventory);
         return new ReserveResponse(true, inventory.getAvailableQuantity(), "Товар успешно зарезервирован");
     }
