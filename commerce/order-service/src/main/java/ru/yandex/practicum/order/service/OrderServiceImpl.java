@@ -1,25 +1,33 @@
 package ru.yandex.practicum.order.service;
 
+import feign.FeignException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.order.dto.CreateOrderRequest;
-import ru.yandex.practicum.order.dto.OrderDto;
-import ru.yandex.practicum.order.dto.OrderItemRequest;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.order.dto.*;
 import ru.yandex.practicum.order.dto.mapper.OrderMapper;
 import ru.yandex.practicum.order.entity.Item;
 import ru.yandex.practicum.order.entity.Order;
 import ru.yandex.practicum.order.exception.NotFoundException;
+import ru.yandex.practicum.order.exception.OrderProcessingException;
+import ru.yandex.practicum.order.feign.InventoryClient;
+import ru.yandex.practicum.order.feign.ProductClient;
 import ru.yandex.practicum.order.repository.OrderRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final ProductClient productClient;
+    private final InventoryClient inventoryClient;
 
     @Override
     public List<OrderDto> getAllOrders() {
@@ -43,20 +51,60 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
+
     @Override
+    @Transactional
     public OrderDto createOrder(CreateOrderRequest request) {
+        Map<Long, Integer> productQuantities = new HashMap<>();
+        for (OrderItemRequest item : request.items()) {
+            productQuantities.merge(item.productId(), item.quantity(), Integer::sum);
+        }
+
+        Map<Long, ProductDto> productCache = new HashMap<>();
+        for (Long productId : productQuantities.keySet()) {
+            try {
+                ProductDto product = productClient.getProductById(productId);
+                productCache.put(productId, product);
+            } catch (FeignException.NotFound e) {
+                throw new OrderProcessingException("Товар с id = " + productId + " не найден в каталоге");
+            }
+        }
+
+        List<ReserveRequest> successfulReserves = new ArrayList<>();
+        try {
+            for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
+                Long productId = entry.getKey();
+                Integer quantity = entry.getValue();
+
+                ReserveRequest reserveRequest = new ReserveRequest(productId, quantity);
+                inventoryClient.reserveStock(reserveRequest);
+                successfulReserves.add(reserveRequest);
+            }
+        } catch (Exception e) {
+            for (ReserveRequest reserveToRollback : successfulReserves) {
+                try {
+                    inventoryClient.unreserveStock(reserveToRollback);
+                } catch (Exception rollbackEx) {
+                }
+            }
+            throw new OrderProcessingException("Не удалось оформить заказ: недостаточно товара на складе");
+        }
+
         Order order = new Order();
         order.setCustomerName(request.customerName());
         order.setCustomerEmail(request.customerEmail());
-        order.setStatus("CREATED");
+        order.setStatus("CONFIRMED");
         order.setCreatedAt(LocalDateTime.now());
 
         for (OrderItemRequest req : request.items()) {
             Item item = new Item();
             item.setProductId(req.productId());
-            item.setProductName(req.productName());
             item.setQuantity(req.quantity());
-            item.setPrice(req.price());
+
+            ProductDto product = productCache.get(req.productId());
+            item.setProductName(product.name());
+            item.setPrice(product.price());
+
             item.setOrder(order);
             order.getItems().add(item);
         }
