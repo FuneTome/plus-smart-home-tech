@@ -17,4 +17,6 @@ public interface InventoryService {
     InventoryDto createRemain(UpdateInventoryRequest request);
 
     ReserveResponse reserveProduct(ReserveRequest request);
+
+    ReserveResponse releaseProduct(ReserveRequest request);
 }

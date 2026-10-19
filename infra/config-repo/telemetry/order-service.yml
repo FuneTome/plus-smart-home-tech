@@ -17,3 +17,16 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: BASIC
+
+      inventory-service:
+        connectTimeout: 3000
+        readTimeout: 3000
+        loggerLevel: BASIC
