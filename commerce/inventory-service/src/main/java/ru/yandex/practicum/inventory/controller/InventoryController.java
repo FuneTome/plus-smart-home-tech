@@ -44,8 +44,8 @@ public class InventoryController {
         return inventoryService.reserveProduct(request);
     }
 
-    @PostMapping("/unreserve")
-    public void unreserveProduct(@RequestBody @Valid ReserveRequest request) {
-        inventoryService.unreserveProduct(request);
+    @PostMapping("/release")
+    public ReserveResponse releaseProduct(@RequestBody @Valid ReserveRequest request) {
+        return inventoryService.releaseProduct(request);
     }
 }

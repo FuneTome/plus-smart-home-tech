@@ -12,6 +12,6 @@ public interface InventoryClient {
     @PostMapping("/api/inventory/reserve")
     ReserveResponse reserveStock(@RequestBody ReserveRequest request);
 
-    @PostMapping("/api/inventory/unreserve")
+    @PostMapping("/api/inventory/release")
     void unreserveStock(@RequestBody ReserveRequest request);
 }

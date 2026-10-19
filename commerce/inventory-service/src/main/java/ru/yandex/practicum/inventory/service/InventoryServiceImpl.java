@@ -72,7 +72,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public void unreserveProduct(ReserveRequest request) {
+    public ReserveResponse releaseProduct(ReserveRequest request) {
         Inventory inventory = inventoryRepository.findByProductId(request.productId())
                 .orElseThrow(() -> new NotFoundException("Остатки с id = " + request.productId() + " не найдена"));
 
@@ -85,5 +85,7 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setReservedQuantity(newReserved);
         inventory.setAvailableQuantity(inventory.getQuantity() - newReserved);
         inventoryRepository.save(inventory);
+
+        return new ReserveResponse(true, inventory.getAvailableQuantity(), "Резерв успешно снят");
     }
 }

@@ -18,5 +18,5 @@ public interface InventoryService {
 
     ReserveResponse reserveProduct(ReserveRequest request);
 
-    void unreserveProduct(ReserveRequest request);
+    ReserveResponse releaseProduct(ReserveRequest request);
 }
