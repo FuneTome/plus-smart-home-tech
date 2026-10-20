@@ -8,8 +8,10 @@ import ru.yandex.practicum.order.dto.*;
 import ru.yandex.practicum.order.dto.mapper.OrderMapper;
 import ru.yandex.practicum.order.entity.Item;
 import ru.yandex.practicum.order.entity.Order;
+import ru.yandex.practicum.order.exception.InventoryServiceUnavailableException;
 import ru.yandex.practicum.order.exception.NotFoundException;
 import ru.yandex.practicum.order.exception.OrderProcessingException;
+import ru.yandex.practicum.order.exception.ProductServiceUnavailableException;
 import ru.yandex.practicum.order.feign.InventoryClient;
 import ru.yandex.practicum.order.feign.ProductClient;
 import ru.yandex.practicum.order.repository.OrderRepository;
@@ -60,41 +62,73 @@ public class OrderServiceImpl implements OrderService {
             productQuantities.merge(item.productId(), item.quantity(), Integer::sum);
         }
 
+        boolean isPendingConfirmation = false;
+        List<String> degradationReasons = new ArrayList<>();
         Map<Long, ProductDto> productCache = new HashMap<>();
+
         for (Long productId : productQuantities.keySet()) {
             try {
                 ProductDto product = productClient.getProductById(productId);
+                if (Boolean.FALSE.equals(product.active())) {
+                    throw new OrderProcessingException("Товар с id = " + productId + " снят с продажи");
+                }
                 productCache.put(productId, product);
+            } catch (ProductServiceUnavailableException e) {
+                isPendingConfirmation = true;
+                degradationReasons.add("Каталог недоступен");
             } catch (FeignException.NotFound e) {
                 throw new OrderProcessingException("Товар с id = " + productId + " не найден в каталоге");
             }
         }
 
         List<ReserveRequest> successfulReserves = new ArrayList<>();
-        try {
-            for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
-                Long productId = entry.getKey();
-                Integer quantity = entry.getValue();
+        boolean inventoryFailed = false;
 
-                ReserveRequest reserveRequest = new ReserveRequest(productId, quantity);
+        for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
+            Long productId = entry.getKey();
+            ReserveRequest reserveRequest = new ReserveRequest(productId, entry.getValue());
+
+            try {
                 inventoryClient.reserveStock(reserveRequest);
                 successfulReserves.add(reserveRequest);
+            } catch (InventoryServiceUnavailableException e) {
+                isPendingConfirmation = true;
+                degradationReasons.add("Склад недоступен");
+                inventoryFailed = true;
+                break;
+            } catch (FeignException e) {
+                if (e.status() == 409 || e.status() == 404) {
+                    inventoryFailed = true;
+                    throw new OrderProcessingException("Не удалось зарезервировать товар: " + e.contentUTF8());
+                } else {
+                    isPendingConfirmation = true;
+                    degradationReasons.add("Склад вернул ошибку " + e.status());
+                    inventoryFailed = true;
+                    break;
+                }
             }
-        } catch (Exception e) {
+        }
+
+        if (inventoryFailed || !successfulReserves.isEmpty() && isPendingConfirmation) {
             for (ReserveRequest reserveToRollback : successfulReserves) {
                 try {
                     inventoryClient.unreserveStock(reserveToRollback);
                 } catch (Exception rollbackEx) {
                 }
             }
-            throw new OrderProcessingException("Не удалось оформить заказ: недостаточно товара на складе");
         }
 
         Order order = new Order();
         order.setCustomerName(request.customerName());
         order.setCustomerEmail(request.customerEmail());
-        order.setStatus("CONFIRMED");
         order.setCreatedAt(LocalDateTime.now());
+
+        if (isPendingConfirmation) {
+            order.setStatus("PENDING_CONFIRMATION");
+            order.setStatusDetails("Требуется ручная проверка. Причины: " + String.join(", ", degradationReasons));
+        } else {
+            order.setStatus("CONFIRMED");
+        }
 
         for (OrderItemRequest req : request.items()) {
             Item item = new Item();
@@ -102,8 +136,13 @@ public class OrderServiceImpl implements OrderService {
             item.setQuantity(req.quantity());
 
             ProductDto product = productCache.get(req.productId());
-            item.setProductName(product.name());
-            item.setPrice(product.price());
+            if (product != null) {
+                item.setProductName(product.name());
+                item.setPrice(product.price());
+            } else {
+                item.setProductName("Товар #" + req.productId() + " (ожидает проверки)");
+                item.setPrice(BigDecimal.ZERO);
+            }
 
             item.setOrder(order);
             order.getItems().add(item);
