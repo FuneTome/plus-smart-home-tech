@@ -65,7 +65,7 @@ public class OrderServiceImpl implements OrderService {
         boolean isPendingConfirmation = false;
         List<String> degradationReasons = new ArrayList<>();
         Map<Long, ProductDto> productCache = new HashMap<>();
-
+        
         for (Long productId : productQuantities.keySet()) {
             try {
                 ProductDto product = productClient.getProductById(productId);
@@ -78,6 +78,9 @@ public class OrderServiceImpl implements OrderService {
                 degradationReasons.add("Каталог недоступен");
             } catch (FeignException.NotFound e) {
                 throw new OrderProcessingException("Товар с id = " + productId + " не найден в каталоге");
+            } catch (FeignException e) {
+                isPendingConfirmation = true;
+                degradationReasons.add("Каталог недоступен (ошибка " + e.status() + ")");
             }
         }
 
@@ -119,7 +122,7 @@ public class OrderServiceImpl implements OrderService {
         if (businessException != null) {
             throw businessException;
         }
-        
+
         Order order = new Order();
         order.setCustomerName(request.customerName());
         order.setCustomerEmail(request.customerEmail());
