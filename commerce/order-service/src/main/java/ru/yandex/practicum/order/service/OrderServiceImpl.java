@@ -82,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         List<ReserveRequest> successfulReserves = new ArrayList<>();
-        boolean inventoryFailed = false;
+        OrderProcessingException businessException = null;
 
         for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
             Long productId = entry.getKey();
@@ -94,22 +94,20 @@ public class OrderServiceImpl implements OrderService {
             } catch (InventoryServiceUnavailableException e) {
                 isPendingConfirmation = true;
                 degradationReasons.add("Склад недоступен");
-                inventoryFailed = true;
                 break;
             } catch (FeignException e) {
                 if (e.status() == 409 || e.status() == 404) {
-                    inventoryFailed = true;
-                    throw new OrderProcessingException("Не удалось зарезервировать товар: " + e.contentUTF8());
+                    businessException = new OrderProcessingException("Не удалось зарезервировать товар: " + e.contentUTF8());
+                    break;
                 } else {
                     isPendingConfirmation = true;
                     degradationReasons.add("Склад вернул ошибку " + e.status());
-                    inventoryFailed = true;
                     break;
                 }
             }
         }
 
-        if (inventoryFailed || !successfulReserves.isEmpty() && isPendingConfirmation) {
+        if (businessException != null || isPendingConfirmation) {
             for (ReserveRequest reserveToRollback : successfulReserves) {
                 try {
                     inventoryClient.unreserveStock(reserveToRollback);
@@ -118,6 +116,10 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
+        if (businessException != null) {
+            throw businessException;
+        }
+        
         Order order = new Order();
         order.setCustomerName(request.customerName());
         order.setCustomerEmail(request.customerEmail());
