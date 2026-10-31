@@ -21,6 +21,12 @@ spring:
     openfeign:
       circuitbreaker:
         enable: true
+    loadbalancer: 
+      retry:
+        enabled: true
+        retry-on-all-operations: true
+        max-retries-on-same-service-instance: 0
+        max-retries-on-next-service-instance: 1
 
 resilience4j:
   circuitbreaker:
