@@ -65,7 +65,7 @@ public class OrderServiceImpl implements OrderService {
         boolean isPendingConfirmation = false;
         List<String> degradationReasons = new ArrayList<>();
         Map<Long, ProductDto> productCache = new HashMap<>();
-        
+
         for (Long productId : productQuantities.keySet()) {
             try {
                 ProductDto product = productClient.getProductById(productId);
