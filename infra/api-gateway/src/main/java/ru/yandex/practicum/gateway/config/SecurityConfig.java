@@ -55,7 +55,7 @@ public class SecurityConfig {
     public MapReactiveUserDetailsService userDetailsService(SecurityProperties properties, PasswordEncoder encoder) {
         List<UserDetails> users = properties.getUsers().stream()
                 .map(u -> User.withUsername(u.getUsername())
-                        .password(encoder.encode(u.getPassword()))
+                        .password(u.getPassword())
                         .roles(u.getRoles().toArray(new String[0]))
                         .build())
                 .toList();

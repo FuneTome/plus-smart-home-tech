@@ -92,8 +92,51 @@ class GatewaySecurityConfigTest {
         webTestClient.options().uri("/api/orders")
                 .header(HttpHeaders.ORIGIN, "http://localhost:3000")
                 .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "authorization")
+                .exchange()
+                .expectStatus().isOk()
+
+                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000")
+                .expectHeader().valueMatches(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, ".*POST.*")
+                .expectHeader().valueMatches(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, ".*authorization.*");
+    }
+
+    @Test
+    void categoriesGet_isPublic() {
+        webTestClient.get().uri("/api/categories")
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    void inventoryGet_isPublic() {
+        webTestClient.get().uri("/api/inventory")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void categoryWrite_withUserCredentials_isForbidden() {
+        webTestClient.post().uri("/api/categories")
+                .header(HttpHeaders.AUTHORIZATION, basic("ivan", "ivan"))
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void categoryWrite_withAdminCredentials_passesSecurity() {
+        webTestClient.post().uri("/api/categories")
+                .header(HttpHeaders.AUTHORIZATION, basic("anna", "anna"))
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void orderCreate_withWrongPassword_isUnauthorized() {
+        webTestClient.post().uri("/api/orders")
+                .header(HttpHeaders.AUTHORIZATION, basic("ivan", "password"))
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     private String basic(String username, String password) {

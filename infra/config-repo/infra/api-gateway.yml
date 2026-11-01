@@ -2,11 +2,11 @@ app:
   security:
     users:
       - username: ivan
-        password: ivan
+        password: '$2a$10$lZTBLhGB.I7DaOK50uY.oezqj9UM12RKK/zuIv7Sqj/E00OoJwiOG'
         roles:
           - USER
       - username: anna
-        password: anna
+        password: '$2a$10$UKxc4ykVz3Zu/3LuoQGjZeY2O75fAFT2Sx7f0PLD.wCinx4sl6QDW'
         roles:
           - USER
           - ADMIN
