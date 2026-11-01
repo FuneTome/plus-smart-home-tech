@@ -43,4 +43,9 @@ public class InventoryController {
     public ReserveResponse reserveProduct(@RequestBody @Valid ReserveRequest request) {
         return inventoryService.reserveProduct(request);
     }
+
+    @PostMapping("/release")
+    public ReserveResponse releaseProduct(@RequestBody @Valid ReserveRequest request) {
+        return inventoryService.releaseProduct(request);
+    }
 }

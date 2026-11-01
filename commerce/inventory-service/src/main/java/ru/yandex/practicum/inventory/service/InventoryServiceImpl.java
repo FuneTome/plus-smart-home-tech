@@ -70,4 +70,22 @@ public class InventoryServiceImpl implements InventoryService {
         inventoryRepository.save(inventory);
         return new ReserveResponse(true, inventory.getAvailableQuantity(), "Товар успешно зарезервирован");
     }
+
+    @Override
+    public ReserveResponse releaseProduct(ReserveRequest request) {
+        Inventory inventory = inventoryRepository.findByProductId(request.productId())
+                .orElseThrow(() -> new NotFoundException("Остатки с id = " + request.productId() + " не найдена"));
+
+        int newReserved = inventory.getReservedQuantity() - request.quantity();
+
+        if (newReserved < 0) {
+            throw new InsufficientStockException("Нельзя разрезервировать больше, чем зарезервировано");
+        }
+
+        inventory.setReservedQuantity(newReserved);
+        inventory.setAvailableQuantity(inventory.getQuantity() - newReserved);
+        inventoryRepository.save(inventory);
+
+        return new ReserveResponse(true, inventory.getAvailableQuantity(), "Резерв успешно снят");
+    }
 }
